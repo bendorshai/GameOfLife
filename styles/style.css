@@ -1,0 +1,97 @@
+
+html, body, .grid {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+*
+{
+    font-family: 'Lato', sans-serif;
+    cursor: default;
+}
+
+.grid
+{
+     display: table;
+
+}
+
+.row {
+    display: table-row;
+}
+
+
+.dead {
+    background-color: #171717;
+}
+
+
+.dying_1 {
+    background-color: #446644;
+}
+
+
+.dying_2 {
+    background-color: #224422;
+}
+
+
+.dying_3 {
+    background-color: #002211;
+}
+
+
+.alive {
+    background-color: #557755;
+}
+
+.cell {
+    height: auto;
+    width: auto;
+    border: 1px;
+    vertical-align: middle;
+    border-color: #303030;
+    display: table-cell;
+    border-style: dashed;
+}
+
+.bar
+{
+    padding: 10px;
+    border: 1px;
+    border-color: #103030;
+    display: block;
+    border-style: solid;
+    font-size: 50px;
+    text-align: center;
+    background-color: #451545;
+    color: #AAAAAA;
+    font-family: in
+}
+
+.bar-controllers
+{
+    padding: 3px;
+    border: 1px;
+    border-color: #103030;
+    display: block;
+    border-style: solid;
+    font-size: 15px;
+    text-align: left;
+    background-color: black;
+    color: #AAAAAA;
+    font-family: in
+}
+
+.btn {
+         font-size: 30px;
+    font-family: 'Lato';
+    font-weight: bold;
+    float: right;
+    margin: 10px;
+    outline: none;
+}
+
+

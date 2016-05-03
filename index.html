@@ -1,0 +1,281 @@
+<html>
+    <head>
+        <!-- Fonts -->
+        <link href='https://fonts.googleapis.com/css?family=Lato:100' rel='stylesheet' type='text/css'>
+
+        <!-- Jquery -->
+        <script src="https://code.jquery.com/jquery-1.12.3.js"></script>
+
+        <!-- Bootstrap -->
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+       
+        <!-- disable smartphone zoom-->
+        <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+
+        <!-- Project -->
+        <script src="./model/grid.js?v3"></script>
+        <script src="./model/enums.js?v3"></script>
+        <script src="./model/cell.js?v3"></script>
+        <link href="./styles/style.css?v5" rel="stylesheet" type="text/css">
+   </head>
+<body>
+    <div class="bar">
+        <b>The Game of Life </b>
+        <button id="start" type="button" class="btn btn-success"> Start </button>
+        <button id="stop" type="button" class="btn btn-danger"> Stop </button>
+     </div> 
+     <span class="bar-controllers">
+            <span id="up" class="glyphicon glyphicon-chevron-up"></span>
+            <span id="down" class="glyphicon glyphicon-chevron-down"></span>
+     </span>
+    <div class="grid"></div>
+</body>
+
+<script>
+    
+    if($ == undefined)
+    {
+        alert("Jquery import error");
+    }
+    
+    
+    //TODO: Calculate screen size
+    var gridHeight = Math.floor((window.innerHeight - $(".bar").height()) / 20)-2;
+    var gridWidth = Math.floor(window.innerWidth / 20)-2;
+
+    // Init grid
+    var grid = new Grid(gridWidth,gridHeight);
+    var gameStatus = GAME_STATUS.STOP;
+    
+    function init(grid)
+    {
+        // Mouse UI variables
+        var mousePressed = false;
+        var livingStatusWhenMousePressed; 
+        
+        var prevY = undefined;
+        var currentDivRow;
+        
+        // Draw all 
+        grid.foreachCell(function(cell,x,y)
+        {
+            // If new row
+            if (prevY == undefined || prevY != y)
+            {
+                // If there is a current row, append it
+                if(prevY != undefined)
+                {
+                    $(".grid").append(currentDivRow);
+                }
+                
+                // Create new row
+                currentDivRow = $("<div/>",
+                {
+                    id: y,
+                    class: "row"
+                });
+            }
+            
+            $("<div/>",
+            {
+                id: x.toString()+"-"+y.toString(),
+                class: ((cell._status == STATUS.ALIVE) ? "alive cell" : "dead cell"),
+                mouseenter: function()
+                {
+                    if (mousePressed)
+                    {
+                        grid.getCellByCoordination(x,y).setLivingStatus(SWITCH_STATUS(livingStatusWhenMousePressed));
+                        digest();
+                    }
+                },
+                click: function()
+                {
+                     grid.getCellByCoordination(x,y).setLivingStatus(SWITCH_STATUS(livingStatusWhenMousePressed));
+                     digest();
+                }
+            }).appendTo(currentDivRow);
+            
+            prevY = y;
+        });
+        
+        // Append last row to grid
+        $(".grid").append(currentDivRow);
+        
+        $(".cell").mousedown(function(){
+           
+           var x = parseInt($(this).attr('id').split('-')[0]);
+           var y = parseInt($(this).attr('id').split('-')[1]);
+            
+           livingStatusWhenMousePressed = grid.getCellByCoordination(x,y).getLivingStatus();
+           mousePressed = true; 
+        });
+        $(".cell").mouseup(function(){
+           mousePressed = false; 
+        });
+        
+        $("#stop").hide();
+        $("#down").hide();
+        
+        $("#up").click(function()
+        {
+            $(".bar").slideUp();
+            $("#up").hide();
+            $("#down").fadeIn();
+        })
+        
+        $("#down").click(function()
+        {
+             $(".bar").slideDown();
+           
+            $("#down").hide();
+             $("#up").fadeIn();
+        })
+        
+        var interval_id;
+        
+        var gameStatusStart = function()
+        {
+             gameStatus = GAME_STATUS.PLAY;
+                
+            // Stop silent digestion interval
+            window.clearInterval(interval_id);
+            
+            // Start play turn interval
+            interval_id = window.setInterval(function(){
+                playTurn(grid);
+                }, 100);
+                
+            $("#start").hide();
+            $("#stop").fadeIn(200);
+        };
+        
+        var gameStatusStop = function()
+        {
+              gameStatus = GAME_STATUS.STOP;
+                 
+                 // Stop play turn interval
+                 window.clearInterval(interval_id);
+                 
+                 // Start silent digestion interval
+                 interval_id = window.setInterval(function(){
+                    silentDigest();
+                    }, 100);
+                 
+                $("#stop").hide();
+                $("#start").fadeIn(200);
+        };
+        
+        
+        // Toggle play
+        $(":root").keypress(function()
+        {
+            // Toggle game play
+            if (gameStatus==GAME_STATUS.STOP)
+            {
+               gameStatusStart();
+            }
+            // from play to stop
+            else if (gameStatus==GAME_STATUS.PLAY)
+            {
+               gameStatusStop();
+            }
+        });
+        
+        $("#start").click(gameStatusStart);
+        
+        $("#stop").click(gameStatusStop);
+    }
+    
+    init(grid);
+    
+    function playTurn(grid)
+    {
+        // First calculate next step
+        grid.foreachCell(function (cell){
+        cell.calculateNextStatus();
+        });
+        
+        // Then commit.
+        grid.foreachCell(function (cell){
+            cell.commitNextStatus();    
+        });
+        
+        digest();
+    }
+    
+    // Update the view
+    function digest()
+    {
+        grid.foreachCell(function(cell,x,y)
+        {
+            var id = x.toString() + "-" + y.toString();
+            var div = $("#"+ id);
+            
+            // Toggle
+            if (cell._status == STATUS.ALIVE && !div.hasClass("alive"))
+            {
+                div.removeClass();
+                div.addClass("alive cell");
+            }
+            else if (cell._status == STATUS.DEAD && !div.hasClass("dead"))
+            {
+                div.removeClass();
+                div.addClass("dead cell");
+            }
+            else if (cell._status == STATUS.DYING_1 && !div.hasClass("dying_1"))
+            {
+                div.removeClass();
+                div.addClass("dying_1 cell");
+            }
+            else if (cell._status == STATUS.DYING_2 && !div.hasClass("dying_2"))
+            {
+                div.removeClass();
+                div.addClass("dying_2 cell");
+            }
+             else if (cell._status == STATUS.DYING_3 && !div.hasClass("dying_3"))
+            {
+                div.removeClass();
+                div.addClass("dying_3 cell");
+            }
+        });
+    }
+    
+    // Update view event when game is stopped
+    function silentDigest()
+    {
+        grid.foreachCell(function(cell,x,y)
+        {
+            var id = x.toString() + "-" + y.toString();
+            var div = $("#"+ id);
+            
+            if (cell._status == STATUS.DYING_1)
+            {
+                div.removeClass();
+                cell._status = STATUS.DYING_2;
+                div.addClass("dying_2 cell");
+            }
+            else if (cell._status == STATUS.DYING_2)
+            {
+                div.removeClass();
+                cell._status = STATUS.DYING_3;
+                div.addClass("dying_3 cell");
+            }
+            else if (cell._status == STATUS.DYING_3)
+            {
+                div.removeClass();
+                cell._status = STATUS.DEAD;
+                div.addClass("dead cell");
+            }
+        });
+    }
+    
+   
+</script>
+
+
+</html>
